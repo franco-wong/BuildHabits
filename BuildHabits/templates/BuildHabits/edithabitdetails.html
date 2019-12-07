@@ -1,0 +1,14 @@
+
+{% if habit %}
+	<form method="post">
+		{% csrf_token %}
+		<h1> Editing {{ habit.habit_text }} </h1>
+		<label>Change the name</label> <input name="updatedname" type="text" value="{{ habit.habit_text }}"></input>
+		<br>
+		<label>Change the occurrence</label> <input name="updatedoccurrence" type="text" value="{{ habit.occurrence }}"></input>
+		<br><br>
+		<button type="submit">Save</button>
+	</form>
+{% else %}
+	<h3>The habit does not exist</h3>
+{% endif %}

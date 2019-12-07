@@ -1,0 +1,11 @@
+<a href="{% url 'buildhabits:viewhabits' %}">View all habits</a>
+
+{% if habit %}
+	<h2> Details for {{ habit.habit_text }}</h2>
+	<h3> Added on {{ habit.date_added }}</h3>
+	<h3> Occurs every {{ habit.occurrence }}</h3>
+
+	<a href="{% url 'buildhabits:edithabitdetails' habit.id %}">Edit this habit</a>
+{% else %}
+	<p> This habit does not exist </p>
+{% endif %}

@@ -1,0 +1,18 @@
+<a href="{% url 'buildhabits:index' %}">Homepage</a>
+
+<h1>Today's activities list</h1>
+
+{% if todayshabits %}
+    <form method="POST">
+        {% csrf_token %}
+        <ul>
+            {% for i in todayshabits%}
+            <label><input type="checkbox" name="checkbox" value={{i.id}} {% if i.completed %} checked {% endif %}>{{ i.habit.habit_text }}</input></label><br>
+            {% endfor %}
+        </ul>
+
+        <button type="submit">Save List</button>
+    </form>
+{% else %}
+    <p>There are no habits for Today</p>
+{% endif %}

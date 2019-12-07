@@ -1,0 +1,13 @@
+<a href="{% url 'buildhabits:index' %}">Homepage</a>
+
+{% if allHabits %}
+	<ul>
+	{% for habit in allHabits %}
+		<li><a href="{% url 'buildhabits:habitdetails' habit.id %}">{{ habit.habit_text }}</a></li>	
+	{% endfor %}
+	</ul>
+{% else %}
+	<p> You didn't enter any habits <p>
+
+{% endif %}
+

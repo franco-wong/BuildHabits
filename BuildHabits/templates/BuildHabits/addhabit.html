@@ -1,0 +1,19 @@
+<a href="{% url 'buildhabits:index' %}">Homepage</a>
+
+<h1>Add a new habit</h1>
+<form action="" method="post">
+	{% csrf_token %}
+	<label>Enter the name of the activity</label>
+	<br><input name="activity" type="text"></input>
+
+	<br>
+	<br><label>How often do you want to perform this activity?</label>
+	<br><label><input type="radio" name="occurrence" value="1"></input>Daily</label>
+	<br><label><input type="radio" name="occurrence" value="2"></input>Every other day</label>
+	<br><label><input type="radio" name="occurrence" value="8"></input>Weekly</label>
+	<br>
+
+	<br><button action="submit">Add this habit</button>
+	
+
+</form>

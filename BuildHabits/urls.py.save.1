@@ -1,0 +1,10 @@
+from django.urls import path
+
+from . import views
+app_name = "BuildHabits"
+urlpatterns = [
+	path('', views.index, name='index'),
+	path('addhabit/', views.addHabit, name='addhabit'),
+	path('viewhabits/', views.viewHabits, name='viewhabits'),
+	path('<int:habit_id>/', views.habitDetails, name='habitdetails'),
+]
