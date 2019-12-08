@@ -13,7 +13,6 @@ def index(request):
 
 def addHabit(request):
 	if request.method == "GET":
-		print("addHabit get method")
 		return render(request, 'BuildHabits/addhabit.html')
 	elif request.method == "POST":
 		try:
@@ -22,7 +21,8 @@ def addHabit(request):
 			print(KeyError)
 		else:
 			newHabit.save()
-			return render(request, 'BuildHabits/index.html')
+			return HttpResponseRedirect(reverse('buildhabits:index'))
+#render(request, 'BuildHabits/index.html')
 
 
 class viewHabits(generic.ListView):
@@ -35,6 +35,9 @@ class viewHabits(generic.ListView):
 class habitDetails(generic.DetailView):
 	model = Habit
 	template_name = 'BuildHabits/habitdetails.html'
+	
+#	def get_queryset(self):
+#		return get_object_or_404(Habit,pk=pk)
 
 def viewToday(request):
 	today = getTodaysDate()
