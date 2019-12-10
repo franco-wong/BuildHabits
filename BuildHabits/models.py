@@ -8,6 +8,7 @@ def getTodaysDate():
 	
 class Habit(models.Model):
 	habit_text = models.CharField(max_length=50)
+	belongs_to = models.CharField(max_length=150)
 	date_added = models.DateTimeField("date added")
 	# the occurrence is the number of days between when each habit should appear on the list
 	occurrence = models.IntegerField()
@@ -16,8 +17,10 @@ class Habit(models.Model):
 	def __str__(self):
 		return self.habit_text
 
+
 class TodayHabitList(models.Model):
 	habit = models.ForeignKey(Habit, on_delete=models.CASCADE)
+	username = models.CharField(max_length=150)
 	track_date = models.DateTimeField("date habit is performed")
 	completed = models.BooleanField(default=False)
 

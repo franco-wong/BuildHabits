@@ -2,6 +2,10 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
 from django.urls import reverse
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .models import Habit, TodayHabitList
 from django.views import generic
@@ -11,35 +15,103 @@ from django.views import generic
 def index(request):
 	return render(request, 'BuildHabits/index.html')
 
+def login_user(request):
+	if request.user.is_authenticated:
+		return HttpResponseRedirect(reverse('buildhabits:homepage'))
+
+	if request.method == "GET":
+		return render(request, 'BuildHabits/login.html')
+	elif request.method == "POST":
+		try:
+			username = request.POST['username']
+			password = request.POST['password']
+		except KeyError:
+			return render(request, 'BuildHabits/login.html',{'error_message':'You must fill in the fields'})
+		else:
+			user = authenticate(username=username, password=password)
+			if user is not None:
+				login(request, user)
+				return HttpResponseRedirect(reverse('buildhabits:homepage'))
+			else:
+				return render(request, 'BuildHabits/login.html', {'error_message':'Invalid login'})
+
+def logout_user(request):
+	logout(request)
+	return HttpResponseRedirect(reverse('buildhabits:index'))
+
+def register(request):
+	if request.user.is_authenticated:
+		return HttpResponseRedirect(reverse('buildhabits:homepage'))
+
+	if request.method == "GET":
+		return render(request, 'BuildHabits/register.html')
+	elif request.method == "POST":
+		try:
+			username = request.POST['username']
+			email = request.POST['email']
+			password = request.POST['password']
+		except KeyError:
+			return render(request, 'BuildHabits/register.html', {'error_message':'You must fill in all the fields'})
+		print(request)
+
+		user = User.objects.create_user(username,email,password)
+		user.save()
+		return HttpResponseRedirect(reverse('buildhabits:homepage'))
+
+def homepage(request):
+	if not request.user.is_authenticated:
+		return HttpResponseRedirect(reverse('buildhabits:login'))
+
+	return render(request, 'BuildHabits/homepage.html')
+
 def addHabit(request):
+	if not request.user.is_authenticated:
+		return HttpResponseRedirect(reverse('buildhabits:login'))
+
 	if request.method == "GET":
 		return render(request, 'BuildHabits/addhabit.html')
 	elif request.method == "POST":
 		try:
-			newHabit = Habit(habit_text=request.POST['activity'], occurrence=request.POST['occurrence'], date_added=timezone.localtime(getTodaysDate()))
+			newHabit = Habit(belongs_to=request.user.get_username(), habit_text=request.POST['activity'], occurrence=request.POST['occurrence'], date_added=timezone.localtime(getTodaysDate()))
 		except KeyError:
-			print(KeyError)
+			return render(request, 'BuildHabits/addhabit.html',{'error_message':'There was an error, please fill in the form'})
 		else:
 			newHabit.save()
 			return HttpResponseRedirect(reverse('buildhabits:index'))
-#render(request, 'BuildHabits/index.html')
-
 
 class viewHabits(generic.ListView):
+
 	template_name = 'BuildHabits/viewhabits.html'
 	context_object_name = 'allHabits'
 
-	def get_queryset(self):
-		return Habit.objects.order_by('-date_added')
+	def get(self, request):
+		if not request.user.is_authenticated:
+			return HttpResponseRedirect(reverse('buildhabits:login'))
+
+		query = self.my_get_queryset(request)
+		return render(request, 'BuildHabits/viewhabits.html', {'allHabits':query})
+
+
+	def my_get_queryset(self, request):
+		queryset = Habit.objects.filter(belongs_to=request.user)
+		return queryset.order_by('-date_added')
 
 class habitDetails(generic.DetailView):
 	model = Habit
 	template_name = 'BuildHabits/habitdetails.html'
-	
-#	def get_queryset(self):
-#		return get_object_or_404(Habit,pk=pk)
+
+	def get(self, request, pk):
+		if not request.user.is_authenticated:
+			return HttpResponseRedirect(reverse('buildhabits:login'))
+		
+		habit = Habit.objects.filter({'pk':pk,'belongs_to':request.user.get_username()})
+
+		return render(request, 'BuildHabits/habitdetails.html', {'habit':habit})
 
 def viewToday(request):
+	if not request.user.is_authenticated:
+		return HttpResponseRedirect(reverse('buildhabits:login'))
+
 	today = getTodaysDate()
 	checkhabits = TodayHabitList.objects.filter(track_date=today)
 	if(request.method == "GET"):
@@ -74,9 +146,17 @@ def getTodaysDate():
 
 
 class editHabitDetails(generic.DetailView):
+
 	model = Habit
 	template_name = 'BuildHabits/edithabitdetails.html'
-	
+
+	def get(self, request, pk):
+		if not request.user.is_authenticated:
+			return HttpResponseRedirect(reverse('buildhabits:login'))
+		
+		return render(request, 'BuildHabits/edithabitdetails.html')
+
+
 	def post(self, request, pk):
 		habit = get_object_or_404(Habit,pk=pk)
 		habit_name = request.POST['updatedname']
@@ -92,17 +172,5 @@ class editHabitDetails(generic.DetailView):
 		if updated:
 			habit.last_modified = getTodaysDate()
 			habit.save()
-		
+
 		return HttpResponseRedirect(reverse('buildhabits:habitdetails', args=(pk,)))
-
-		#return render(request, reverse('buildhabits:habitdetails',pk))
-		
-	# template_name = 'BuildHabits/viewtoday.html'
-	# context_object_name = 'todayshabits'
-
-	# def get_queryset(self):
-	# 	return Habit.objects.order_by('-date_added')
-
-#def habitDetails(request, habit_id):
-#	habit = get_object_or_404(Habit, pk=habit_id)
-#	return render(request, 'BuildHabits/habitdetails.html', {'habit': habit})

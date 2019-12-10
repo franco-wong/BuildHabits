@@ -1,0 +1,19 @@
+<h1>Register</h1>
+
+{% if error_message %}
+	<p style="color:red">{{ error_message }}</p>
+{% endif %}
+<form method='POST'>
+	{% csrf_token %}
+	<input name="username" type="text" placeholder="username"></input>
+	<br>
+	<input name="email" type="email" placeholder="email"></input>
+	<br>
+	<input name="password" type="password" placeholder="password"></input>
+	<br><br>
+	
+	<button type="submit">Register</button>
+
+</form>
+
+<a href="{% url 'buildhabits:login'  %}" style="font-size:10px">Login</a>

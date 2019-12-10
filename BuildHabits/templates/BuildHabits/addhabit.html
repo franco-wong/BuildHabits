@@ -1,4 +1,8 @@
-<a href="{% url 'buildhabits:index' %}">Homepage</a>
+<a href="{% url 'buildhabits:homepage' %}">Homepage</a>
+
+{% if error_message %}
+	<p style="color:red">{{error_message}}</p>
+{% endif %}
 
 <h1>Add a new habit</h1>
 <form action="" method="post">
