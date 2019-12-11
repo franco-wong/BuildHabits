@@ -1,16 +1,48 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 
 from BuildHabits.models import Habit
 
-def create_habit(habit_text, occurrence):
-	return Habit.objects.create(habit_text=habit_text, occurrence=occurrence,date_added=getTodaysDate())
+username="test"
+password="test"
+email="test@test.com"
+
+def create_habit(habit_text, occurrence, username):
+	return Habit.objects.create(belongs_to=username,habit_text=habit_text, occurrence=occurrence,date_added=getTodaysDate())
 
 def getTodaysDate():
 	return timezone.localtime(timezone.now()).replace(hour=0,minute=0,second=0,microsecond=0)
 
+class UserAuthTest(TestCase):
+	def setUp(self):
+		User = get_user_model()
+		user = User.objects.create_user(username, email, password)
+
+	def test_user_not_logged_for_all_pages(self):
+		response = self.client.get(reverse('buildhabits:homepage'))
+		self.assertRedirects(response, reverse('buildhabits:login'))
+
+		response = self.client.get(reverse('buildhabits:addhabit'))
+		self.assertRedirects(response, reverse('buildhabits:login'))
+
+		response = self.client.get(reverse('buildhabits:viewhabits'))
+		self.assertRedirects(response, reverse('buildhabits:login'))
+
+		response = self.client.get(reverse('buildhabits:habitdetails', args=("5",)))
+		self.assertRedirects(response, reverse('buildhabits:login'))
+
+		response = self.client.get(reverse('buildhabits:edithabitdetails', args=("5",)))
+		self.assertRedirects(response, reverse('buildhabits:login'))
+
+
+# Tests the habit model with a registered and logged in user
 class HabitModelTests(TestCase):
+	def setUp(self):
+		User = get_user_model()
+		user = User.objects.create_user(username, email, password)
+
 	def test_index_loads(self):
 		"""
 		Testing the index page
@@ -22,6 +54,9 @@ class HabitModelTests(TestCase):
 		"""
 		Testing the get function of adding a habit
 		"""
+		User = get_user_model()
+		self.client.login(username=username, password=password)
+
 		response = self.client.get(reverse('buildhabits:addhabit'))
 		self.assertEqual(response.status_code, 200)
 	
@@ -29,13 +64,19 @@ class HabitModelTests(TestCase):
 		"""
 		Testing the post function of adding a habit
 		"""
+		User = get_user_model()
+		self.client.login(username=username, password=password)
+
 		response = self.client.post(reverse('buildhabits:addhabit'),{'activity':'One habit', 'occurrence':'1'})
-		self.assertRedirects(response, reverse('buildhabits:index'))
+		self.assertRedirects(response, reverse('buildhabits:homepage'))
 
 	def test_view_habits_no_habits(self):
 		"""
 		Testing the view of all habits with zero habits
 		"""
+		User = get_user_model()
+		self.client.login(username=username, password=password)
+
 		response = self.client.get(reverse('buildhabits:viewhabits'))
 		self.assertEqual(response.status_code,200)
 		self.assertContains(response, "You didn't enter any habits")
@@ -45,7 +86,10 @@ class HabitModelTests(TestCase):
 		"""
 		Testing the view of all habits with one habit
 		"""
-		create_habit(habit_text="A habit",occurrence=1)
+		User = get_user_model()
+		self.client.login(username=username,password=password)
+
+		create_habit(habit_text="A habit",occurrence=1, username=username)
 		response = self.client.get(reverse('buildhabits:viewhabits'))
 		self.assertQuerysetEqual(response.context['allHabits'], ["<Habit: A habit>"])
 
@@ -53,8 +97,11 @@ class HabitModelTests(TestCase):
 		"""
 		Testing the view of all habits with two habits
 		"""
-		create_habit(habit_text="One habit", occurrence=2)
-		create_habit(habit_text="Two habits", occurrence=1)
+		User = get_user_model()
+		self.client.login(username=username, password=password)
+
+		create_habit(habit_text="One habit", occurrence=2, username=username)
+		create_habit(habit_text="Two habits", occurrence=1, username=username)
 		response = self.client.get(reverse("buildhabits:viewhabits"))
 		self.assertQuerysetEqual(response.context['allHabits'],["<Habit: One habit>","<Habit: Two habits>"])
 
@@ -62,6 +109,9 @@ class HabitModelTests(TestCase):
 		"""
 		Testing the response when looking at a non existent habit
 		"""
+		User = get_user_model()
+		self.client.login(username=username, password=password)
+
 		response = self.client.get(reverse("buildhabits:habitdetails",args=("5",)))
 		self.assertEqual(response.status_code,404)
 	
@@ -69,7 +119,10 @@ class HabitModelTests(TestCase):
 		"""
 		Testing the response when looking at an existing habit
 		"""
-		habit = create_habit(habit_text="A habit", occurrence=1)
+		User = get_user_model()
+		self.client.login(username=username, password=password)
+
+		habit = create_habit(habit_text="A habit", occurrence=1, username=username)
 		response = self.client.get(reverse("buildhabits:habitdetails",args=(habit.id,)))
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, habit.habit_text)
@@ -78,14 +131,21 @@ class HabitModelTests(TestCase):
 		"""
 		Testing the response when trying to edit a non existent habit
 		"""
-		response = self.client.get(reverse('buildhabits:edithabitdetails',args=("5",)))
-		self.assertEqual(response.status_code,404)
+		User = get_user_model()
+		self.client.login(username=username, password=password)
+
+		response = self.client.get(reverse('buildhabits:edithabitdetails',args=("99",)))
+		self.assertEqual(response.status_code,200)
+		self.assertContains(response, "The habit does not exist")
 
 	def test_get_editing_habit_of_existing_habit(self):
 		"""
 		Testing the response when trying to edit an existing habit
 		"""
-		habit = create_habit(habit_text="A habit", occurrence=1)
+		User = get_user_model()
+		self.client.login(username=username, password=password)
+
+		habit = create_habit(habit_text="A habit", occurrence=1, username=username)
 		response = self.client.get(reverse('buildhabits:edithabitdetails', args=(habit.id,)))
 		self.assertEquals(response.status_code, 200)
 
@@ -93,7 +153,10 @@ class HabitModelTests(TestCase):
 		"""
 		Testing the post function of editing a habit
 		"""
-		habit = create_habit(habit_text="A habit", occurrence=1)
+		User = get_user_model()
+		self.client.login(username=username, password=password)
+
+		habit = create_habit(habit_text="A habit", occurrence=1, username=username)
 		response = self.client.post(reverse('buildhabits:edithabitdetails',args=(habit.id,)),{'updatedname':'A habit changed','updatedoccurrence':'2'})
 		self.assertRedirects(response,reverse('buildhabits:habitdetails',args=(habit.id,)))
 

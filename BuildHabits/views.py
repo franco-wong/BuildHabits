@@ -52,7 +52,6 @@ def register(request):
 			password = request.POST['password']
 		except KeyError:
 			return render(request, 'BuildHabits/register.html', {'error_message':'You must fill in all the fields'})
-		print(request)
 
 		user = User.objects.create_user(username,email,password)
 		user.save()
@@ -91,7 +90,6 @@ class viewHabits(generic.ListView):
 		query = self.my_get_queryset(request)
 		return render(request, 'BuildHabits/viewhabits.html', {'allHabits':query})
 
-
 	def my_get_queryset(self, request):
 		queryset = Habit.objects.filter(belongs_to=request.user)
 		return queryset.order_by('-date_added')
@@ -104,28 +102,45 @@ class habitDetails(generic.DetailView):
 		if not request.user.is_authenticated:
 			return HttpResponseRedirect(reverse('buildhabits:login'))
 		
-		habit = Habit.objects.filter({'pk':pk,'belongs_to':request.user.get_username()})
+		habit = get_object_or_404(Habit,pk=pk)
+		if request.user.get_username() != habit.belongs_to:
+			habit = None
 
 		return render(request, 'BuildHabits/habitdetails.html', {'habit':habit})
+
+def check_if_habit_daily_habit_exists(today, habit, todayshabits):
+	for h in todayshabits:
+		if habit.habit_text == h.habit.habit_text:
+			return True
+
+	return False
+
+def convert_queryset_to_list(checkhabits):
+	todayshabits = []
+	for i in checkhabits:
+		todayshabits.append(i)
+
+	return todayshabits
 
 def viewToday(request):
 	if not request.user.is_authenticated:
 		return HttpResponseRedirect(reverse('buildhabits:login'))
 
 	today = getTodaysDate()
-	checkhabits = TodayHabitList.objects.filter(track_date=today)
+	#checkhabits = TodayHabitList.objects.filter(username=request.user.get_username())
+	checkhabits = TodayHabitList.objects.filter(username=request.user.get_username()).filter(track_date=today)
+	print(checkhabits)
 	if(request.method == "GET"):
-		todayshabits=[]
-		if len(checkhabits) == 0:
-			habits = Habit.objects.all()
-			for currHabit in habits:
-				habit_date = currHabit.date_added
-				if((habit_date-today).days % currHabit.occurrence == 0):
-					newHabitToday = TodayHabitList.objects.create(username=habit.belongs_to,habit_id=currHabit.id,track_date=today, completed=False)
+		todayshabits=convert_queryset_to_list(checkhabits)
+		habits = Habit.objects.all()
+		for currHabit in habits:
+			habit_date = currHabit.date_added
+			if((habit_date-today).days % currHabit.occurrence == 0):
+				if not check_if_habit_daily_habit_exists(today, currHabit, todayshabits):
+					newHabitToday = TodayHabitList.objects.create(username=currHabit.belongs_to,habit_id=currHabit.id,track_date=today, completed=False)
 					# Line 50: Trying to create a database entry into the TodayHabitList table with the parent's id from Habit table
 					todayshabits.append(newHabitToday)
-		else:
-			todayshabits = checkhabits
+
 		return render(request,'BuildHabits/viewtoday.html', {'todayshabits':todayshabits})
 
 	elif(request.method == "POST"):
@@ -139,11 +154,9 @@ def viewToday(request):
 
 		return HttpResponseRedirect(reverse('buildhabits:viewtoday'))
 
-
 # A method to get the current date with time set to 0
 def getTodaysDate():
 	return timezone.localtime(timezone.now()).replace(hour=0, minute=0, second=0, microsecond=0)
-
 
 class editHabitDetails(generic.DetailView):
 
@@ -155,7 +168,6 @@ class editHabitDetails(generic.DetailView):
 			return HttpResponseRedirect(reverse('buildhabits:login'))
 		
 		return render(request, 'BuildHabits/edithabitdetails.html')
-
 
 	def post(self, request, pk):
 		habit = get_object_or_404(Habit,pk=pk)
