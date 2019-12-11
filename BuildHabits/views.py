@@ -77,7 +77,7 @@ def addHabit(request):
 			return render(request, 'BuildHabits/addhabit.html',{'error_message':'There was an error, please fill in the form'})
 		else:
 			newHabit.save()
-			return HttpResponseRedirect(reverse('buildhabits:index'))
+			return HttpResponseRedirect(reverse('buildhabits:homepage'))
 
 class viewHabits(generic.ListView):
 
@@ -121,7 +121,7 @@ def viewToday(request):
 			for currHabit in habits:
 				habit_date = currHabit.date_added
 				if((habit_date-today).days % currHabit.occurrence == 0):
-					newHabitToday = TodayHabitList.objects.create(habit_id=currHabit.id,track_date=today, completed=False)
+					newHabitToday = TodayHabitList.objects.create(username=habit.belongs_to,habit_id=currHabit.id,track_date=today, completed=False)
 					# Line 50: Trying to create a database entry into the TodayHabitList table with the parent's id from Habit table
 					todayshabits.append(newHabitToday)
 		else:
