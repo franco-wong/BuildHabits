@@ -127,12 +127,10 @@ def viewToday(request):
 		return HttpResponseRedirect(reverse('buildhabits:login'))
 
 	today = getTodaysDate()
-	#checkhabits = TodayHabitList.objects.filter(username=request.user.get_username())
 	checkhabits = TodayHabitList.objects.filter(username=request.user.get_username()).filter(track_date=today)
-	print(checkhabits)
 	if(request.method == "GET"):
 		todayshabits=convert_queryset_to_list(checkhabits)
-		habits = Habit.objects.all()
+		habits = Habit.objects.filter(belongs_to=request.user.get_username())
 		for currHabit in habits:
 			habit_date = currHabit.date_added
 			if((habit_date-today).days % currHabit.occurrence == 0):
